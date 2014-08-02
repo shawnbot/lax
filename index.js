@@ -264,7 +264,7 @@ lax.sort = function(expr, order) {
     order = lax.asc;
   }
 
-  var value = lax.expr(expr);
+  var value = lax.property(expr);
   return function sort(a, b) {
     return order(value(a), value(b));
   };
@@ -745,7 +745,7 @@ lax.values = function(obj) {
 
 lax.agg = function(reduce) {
   return function(expr) {
-    if (expr) expr = lax.expr(expr);
+    if (expr) expr = lax.property(expr);
     var agg = alias(function(d) {
       return reduce(expr ? d.map(expr) : d);
     }, reduce.name + "(" + (expr ? lax.alias.get(expr) : "") + ")");
