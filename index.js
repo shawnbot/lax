@@ -486,6 +486,37 @@ lax.coerce.object = function() {
   return coerce;
 };
 
+/*
+ * lax.select() provides a SQL-like interface for "selecting" arbitrary
+ * columns (expressions, or any function), filtering, grouping, and slicing.
+ *
+ * lax.select("a", "b.length")
+ *   .where("c > 2")
+ *   .from([
+ *     {a: "hi", b: "beep",   c: 2},
+ *     {a: "ho", b: "boop",   c: 0},
+ *     {a: "yo", b: "bleep",  c: 3}
+ *   ]);
+ * // returns:
+ * [
+ *   {a: "hi", "b.length": 4},
+ *   {a: "yo", "b.length": 5}
+ * ]
+ *
+ * lax.select(lax.p("foo").as("f"), lax.max("bar").as("max_bar"))
+ *  .groupBy("foo")
+ *  .from([
+ *    {foo: 1, bar: 2},
+ *    {foo: 1, bar: 6},
+ *    {foo: 2, bar: 3},
+ *    {foo: 2, bar: 1}
+ *  ]);
+ * // returns:
+ * [
+ *   {f: 1, "max_bar": 6},
+ *   {f: 2, "max_bar": 3}
+ * ]
+ */
 lax.select = function(exprs) {
   exprs = flatten(arguments).map(lax.expr);
 
@@ -493,6 +524,7 @@ lax.select = function(exprs) {
       filter,
       groupBy,
       having,
+      sort,
       limit = 0,
       offset = 0,
       splat = true;
@@ -520,6 +552,7 @@ lax.select = function(exprs) {
       out = group(out, rows);
       if (having) out = out.filter(having);
     }
+    if (sort) out.sort(sort);
     if (offset > 0) out = out.slice(offset);
     if (limit > 0) out = out.slice(0, limit);
     return out;
@@ -527,6 +560,11 @@ lax.select = function(exprs) {
 
   select.where = function() {
     filter = lax.and(arguments);
+    return select;
+  };
+
+  select.orderBy = function() {
+    sort = lax.multisort(arguments);
     return select;
   };
 
