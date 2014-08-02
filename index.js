@@ -233,7 +233,8 @@ lax.desc.numeric = function(a, b) {
  * lax.sort("foo") // sort on the expression "foo", ascending by default
  * lax.sort("foo desc") // sort on the expression "foo", descending
  * lax.sort("foo", "desc") // sort on the expression "foo", descending
- * lax.sort("foo", function(a, b) { return a - b; }) // custom order comparator
+ * lax.sort("foo", lax.asc) // use the asc order
+ * lax.sort("foo", function(a, b) { return a - b; }) // or a custom order
  */
 lax.sort = function(expr, order) {
   if (typeof expr === "string") {
