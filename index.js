@@ -22,8 +22,7 @@ lax.version = "0.0.0";
 
 // because I'm lazy
 var slice = lax.slice,
-    forEach = lax.forEach,
-    map = lax.map;
+    forEach = lax.forEach;
 
 // identity function
 lax.ident = lax.identity = function identity(d) { return d; };
@@ -232,7 +231,7 @@ lax.sort = function(expr, order) {
     var match = expr.match(/ (asc|desc)/i);
     if (match) {
       if (typeof order === "function" || typeof order === "string") {
-        console.warn("Ignoring sort() order:", order);
+        console.warn("ignoring sort() order:", order);
       }
       order = match[1];
       expr = expr.substr(0, expr.length - (order.length + 1));
@@ -520,8 +519,7 @@ lax.coerce.object = function() {
 lax.select = function(exprs) {
   exprs = flatten(arguments).map(lax.expr);
 
-  var construct = Object,
-      filter,
+  var filter,
       groupBy,
       having,
       sort,
@@ -546,7 +544,7 @@ lax.select = function(exprs) {
   }
 
   function select(rows) {
-    var out = rows.map(makeRow);
+    var out = rows.map(select.row);
     if (filter) out = out.filter(filter);
     if (groupBy) {
       out = group(out, rows);
@@ -557,6 +555,10 @@ lax.select = function(exprs) {
     if (limit > 0) out = out.slice(0, limit);
     return out;
   }
+
+  select.row = function(row) {
+    return makeRow(row);
+  };
 
   select.where = function() {
     filter = lax.and(arguments);
@@ -595,9 +597,9 @@ lax.select = function(exprs) {
     return select;
   };
 
-  function makeRow(row, columns) {
+  function makeRow(row) {
     if (splat || !columns.length) return row;
-    var d = construct();
+    var d = {};
     if (splat) extend(d, row);
     for (var i = 0, len = columns.length; i < len; i++) {
       var col = columns[i],
@@ -616,15 +618,15 @@ lax.select = function(exprs) {
     var groups = groupBy(rows);
 
     var grouped = groups.map(function(g) {
-      var row = makeRow(g, columns),
-          d = g.__rows__.map(function(d) {
-            return input[d.__index__];
-          });
+      var set = g.__rows__.map(function(d) {
+        return input[d.__index__];
+      });
+      delete g.__rows__;
       aggregates.forEach(function(agg) {
         var key = lax.alias.get(agg);
-        row[key] = agg(d);
+        g[key] = agg(set);
       });
-      return row;
+      return g;
     });
 
     // clean up after ourselves
@@ -670,24 +672,25 @@ lax.nest = function(expr) {
 lax.groupBy = function(columns) {
   var groups = flatten(arguments).map(lax.expr);
   return function group(rows) {
-    var keys = {};
+    var lookup = {},
+        keys = [];
     for (var i = 0, len = rows.length; i < len; i++) {
       var row = rows[i],
           values = groups.map(function(g) {
             return g(row);
           }),
           key = values.join("/");
-      if (keys.hasOwnProperty(key)) {
-        keys[key].rows.push(row);
+      if (lookup.hasOwnProperty(key)) {
+        lookup[key].rows.push(row);
       } else {
-        keys[key] = {
+        keys.push(lookup[key] = {
           values: values,
           key: key,
           rows: [row]
-        };
+        });
       }
     }
-    return lax.values(keys).map(function(d) {
+    return keys.map(function(d) {
       var g = {__rows__: d.rows};
       groups.forEach(function(group, i) {
         var key = lax.alias.get(group);
