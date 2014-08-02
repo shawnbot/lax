@@ -10,26 +10,48 @@ lax.version = "0.0.0";
     return ap.slice.apply(list, ap.slice.call(arguments, 1));
   };
 
-  lax.forEach = function(list) {
+  lax.forEach = function(list, fn) {
     return ap.forEach.apply(list, ap.slice.call(arguments, 1));
+  };
+
+  lax.map = function(list, fn) {
+    return ap.map.apply(list, ap.slice.call(arguments, 1));
   };
 
 })(Array.prototype);
 
 // because I'm lazy
 var slice = lax.slice,
-    forEach = lax.forEach;
-
-// determine whether something is an Array or Arguments list
-lax.isList = function(list) {
-  return Array.isArray(list) || String(list) === "[object Arguments]";
-};
+    forEach = lax.forEach,
+    map = lax.map;
 
 // identity function
 lax.ident = lax.identity = function identity(d) { return d; };
 
+var alias = lax.alias = function(fn, name) {
+  fn.as = function(alias) {
+    fn.alias = alias;
+    return fn;
+  };
+  fn.toString = function() {
+    return lax.alias.get(this);
+  };
+  return fn.as(name);
+};
+
+lax.alias.get = function(fn) {
+  return fn.alias || fn.name;
+};
+
 // noop function (returns undefined)
 lax.noop = function noop() {};
+
+// functor
+lax.functor = function(d) {
+  return (typeof d === "function")
+    ? d
+    : function() { return d; };
+};
 
 var flatten = lax.flatten = function() {
   var flat = [];
@@ -51,12 +73,17 @@ var flatten = lax.flatten = function() {
  * lax.extend() takes 1 or more objects, and returns
  * the first one with keys coped from every other one.
  */
-lax.extend = function(obj, props) {
+var extend = lax.extend = function(obj, props) {
   slice(arguments, 1).forEach(function(other) {
     if (!other) return;
     for (var key in other) obj[key] = other[key];
   });
   return obj;
+};
+
+// determine whether something is an Array or Arguments list
+lax.isList = function isList(list) {
+  return Array.isArray(list) || String(list) === "[object Arguments]";
 };
 
 /*
@@ -66,9 +93,9 @@ lax.extend = function(obj, props) {
  */
 lax.property = function(prop) {
   if (typeof prop === "function") return prop;
-  return function property(d) {
+  return alias(function(d) {
     return d[prop];
-  };
+  }, prop);
 };
 
 /*
@@ -83,11 +110,33 @@ lax.property = function(prop) {
 lax.expr = function(expr) {
   if (typeof expr === "function") return expr;
   var memo = {};
-  return function(d) {
+  return alias(function(d) {
     if (!d) d = memo;
-    with (d) return eval(expr, d);
-  };
+    try {
+      with (sanitize(d)) return eval(expr, d);
+    } catch (error) {
+      console.warn("expression threw error:", expr, "with", d, ":", error);
+      return undefined;
+    }
+  }, expr);
 };
+
+function sanitize(d) {
+  var o = {};
+  for (var k in d) {
+    var s = k.replace(/\W/g, "_")
+      .replace(/_+$/, "")
+    if (s.match(/^\W/)) {
+      s = "_" + s;
+    }
+    o[s] = d[k];
+  }
+  return o;
+}
+
+// shorthands
+lax.p = lax.property;
+lax.e = lax.expr;
 
 /*
  * lax.compose() returns a new function that composes each function
@@ -106,6 +155,16 @@ lax.compose = function() {
     }
     return d;
   };
+};
+
+/*
+ * create a wrapped function that returns the boolean ! of the other function
+ */
+lax.not = function(f) {
+  f = lax.expr(f);
+  return alias(function not() {
+    return !f.apply(this, arguments);
+  }, "!" + lax.alias.get(f));
 };
 
 /*
@@ -222,12 +281,6 @@ lax.multisort = function() {
   };
 };
 
-lax.not = function(f) {
-  return function not() {
-    return !f.apply(this, arguments);
-  };
-};
-
 /*
  * The lax.cmp.* functions are functions that generate comparators:
  *
@@ -237,7 +290,10 @@ lax.not = function(f) {
  */
 lax.cmp = function(op) {
   return function cmp(value) {
-    return new Function("d", ["return", "d", op, value].join(" "));
+    return alias(
+      new Function("d", ["return", "d", op, value].join(" ")),
+      [op, value].join("")
+    );
   };
 };
 
@@ -250,16 +306,52 @@ lax.cmp.gt = lax.cmp(">");
 lax.cmp.gte = lax.cmp(">=");
 lax.cmp.lt = lax.cmp("<");
 lax.cmp.lte = lax.cmp("<=");
-lax.cmp.mod = lax.cmp("%=");
+lax.cmp.mod = lax.cmp("%");
+lax.cmp.plus = lax.cmp.add = lax.cmp("+");
+lax.cmp.minus = lax.cmp.sub = lax.cmp("-");
 
 // is ~ instanceof
-lax.cmp.is = lax.cmp("instanceof");
-// type ~ typeof
-lax.cmp.type = function(type) {
-  return function(d) {
-    return typeof d === type;
+lax.cmp.instance = function(klass) {
+  return function instance(d) {
+    return d instanceof klass;
   };
 };
+
+// type ~ typeof
+lax.cmp.type = function(type) {
+  return alias(function(d) {
+    return typeof d === type;
+  }, "type:" + type);
+};
+
+/*
+ * lax.is(type) -> lax.cmp.type(type)
+ * lax.is(class) -> lax.cmp.instance(class)
+ * lax.is(alias) -> alias
+ */
+lax.is = function(type) {
+  return lax.is[type] || (
+    typeof type === "string"
+      ? lax.cmp.type(type)
+      : lax.cmp.is(type)
+  );
+};
+
+// shorthand type checkers
+lax.is.bool = lax.cmp.type("boolean");
+lax.is.number = lax.cmp.type("number");
+lax.is.object = lax.cmp.type("object");
+lax.is.string = lax.cmp.type("string");
+lax.is.date = lax.cmp.instance(Date);
+lax.is.defined = function defined(x) { return typeof x !== "undefined"; };
+lax.is.undef = alias(lax.cmp.type("undefined"), "undef");
+lax.is.nil = function nil(x) { return x === null; };
+
+lax.is.array = alias(Array.isArray, "array");
+lax.is.integer = function integer(n) { return n % 1 === 0; };
+lax.is.floating = function floating(n) { return n % 1 > 0; };
+
+lax.is.list = function list(d) { return lax.isList(d); };
 
 /*
  * A regular expression matcher:
@@ -273,9 +365,9 @@ lax.cmp.re = function(pattern) {
     var match = pattern.match(/^\/(.*)\/([a-z]+)?$/);
     if (match) pattern = new RegExp(match[1], match[2]);
   }
-  return function(d) {
+  return alias(function(d) {
     return (typeof d === "string") && d.match(pattern);
-  };
+  }, "re:" + pattern);
 };
 
 /*
@@ -341,6 +433,271 @@ lax.enlist = function(obj, keys) {
     return obj[k];
   });
 };
+
+
+/*
+ * simple type coercion
+ */
+lax.coerce = {
+  // lax.coerce.string(2) -> "2"
+  string: String,
+  // lax.coerce.number("2") -> 2
+  number: function(d) { return +d || 0; },
+  // lax.coerce.list(1) -> [1]
+  // lax.coerce.list([1, 2]) -> [1, 2]
+  list: function(d) {
+    return lax.isList(d) ? slice(d) : [d];
+  }
+};
+
+/*
+ * key-specific coercion:
+ *
+ * lax.coerce.key("foo", "number")({foo: "2"}) -> {foo: 2}
+ */
+lax.coerce.key = function(key, type) {
+  if (type in lax.coerce) type = lax.coerce[type];
+  return function(d) {
+    return d && (d[key] = type(d[key])), d;
+  };
+};
+
+/*
+ * object coercion with a key setter:
+ *
+ * var coerce = lax.coerce.object()
+ *   .key("foo", "number")
+ *   .key("bar", "string");
+ * coerce({foo: "2", bar: 1}) -> {foo: 2, bar: "2"}
+ */
+lax.coerce.object = function() {
+  var ops = [];
+  function coerce(d) {
+    ops.forEach(function(op) {
+      op(d);
+    });
+    return d;
+  }
+
+  coerce.key = function(key, type) {
+    ops.push(lax.coerce.key(key, type));
+  };
+
+  return coerce;
+};
+
+lax.select = function(exprs) {
+  exprs = flatten(arguments).map(lax.expr);
+
+  var construct = Object,
+      filter,
+      groupBy,
+      having,
+      limit = 0,
+      offset = 0,
+      splat = true;
+
+  var columns = exprs.filter(function(e) { return !e.aggregate; }),
+      aggregates = exprs.filter(function(e) { return e.aggregate; });
+
+  if (columns.length) {
+    var i = columns.map(function(c) {
+      return c.alias;
+    })
+    .indexOf("*");
+    if (i > -1) {
+      columns.splice(i, 1);
+      splat = true;
+    } else {
+      splat = false;
+    }
+  }
+
+  function select(rows) {
+    var out = rows.map(makeRow);
+    if (filter) out = out.filter(filter);
+    if (groupBy) {
+      out = group(out, rows);
+      if (having) out = out.filter(having);
+    }
+    if (offset > 0) out = out.slice(offset);
+    if (limit > 0) out = out.slice(0, limit);
+    return out;
+  }
+
+  select.where = function() {
+    filter = lax.and(arguments);
+    return select;
+  };
+
+  select.limit = function(x, y) {
+    if (!arguments.length) return limit;
+    limit = x;
+    if (arguments.length > 1) offset = y;
+    return select;
+  };
+
+  select.offset = function(x) {
+    if (!arguments.length) return offset;
+    offset = x;
+    return select;
+  };
+
+  select.from = function(rows) {
+    return select(rows);
+  };
+
+  select.groupBy = function() {
+    groupBy = lax.groupBy(arguments);
+    return select;
+  };
+
+  select.having = function() {
+    having = lax.and(arguments);
+    return select;
+  };
+
+  function makeRow(row, columns) {
+    if (splat || !columns.length) return row;
+    var d = construct();
+    if (splat) extend(d, row);
+    for (var i = 0, len = columns.length; i < len; i++) {
+      var col = columns[i],
+          key = lax.alias.get(col);
+      d[key] = col(row);
+    }
+    return d;
+  }
+
+  function group(rows, input) {
+    // create an index lookup
+    rows.forEach(function(d, i) {
+      d.__index__ = i;
+    });
+
+    var groups = groupBy(rows);
+
+    var grouped = groups.map(function(g) {
+      var row = makeRow(g, columns),
+          d = g.__rows__.map(function(d) {
+            return input[d.__index__];
+          });
+      aggregates.forEach(function(agg) {
+        var key = lax.alias.get(agg);
+        row[key] = agg(d);
+      });
+      return row;
+    });
+
+    // clean up after ourselves
+    rows.forEach(function(d, i) {
+      delete d.__index__;
+    });
+
+    return grouped;
+  }
+
+  return select;
+};
+
+lax.nest = function(expr) {
+  var groups = flatten(arguments).map(lax.expr);
+  if (!groups.length) {
+    throw new Error("lax.group() expects at least one expression");
+  }
+  function group(rows, g) {
+    var out = {},
+        expr = groups[g];
+    for (var i = 0, len = rows.length; i < len; i++) {
+      var row = rows[i],
+          key = expr(row);
+      if (out.hasOwnProperty(key)) {
+        out[key].push(row);
+      } else {
+        out[key] = [row];
+      }
+    }
+    if (g < groups.length - 1) {
+      for (var key in out) {
+        out[key] = group(out[key], g + 1);
+      }
+    }
+    return out;
+  }
+  return function nest(rows) {
+    return group(rows, 0);
+  };
+};
+
+lax.groupBy = function(columns) {
+  var groups = flatten(arguments).map(lax.expr);
+  return function group(rows) {
+    var keys = {};
+    for (var i = 0, len = rows.length; i < len; i++) {
+      var row = rows[i],
+          values = groups.map(function(g) {
+            return g(row);
+          }),
+          key = values.join("/");
+      if (keys.hasOwnProperty(key)) {
+        keys[key].rows.push(row);
+      } else {
+        keys[key] = {
+          values: values,
+          key: key,
+          rows: [row]
+        };
+      }
+    }
+    return lax.values(keys).map(function(d) {
+      var g = {__rows__: d.rows};
+      groups.forEach(function(group, i) {
+        var key = lax.alias.get(group);
+        g[key] = d.values[i];
+      });
+      return g;
+    });
+  };
+};
+
+lax.values = function(obj) {
+  var values = [];
+  for (var key in obj) {
+    if (obj.hasOwnProperty(key)) values.push(obj[key]);
+  }
+  return values;
+};
+
+lax.agg = function(reduce) {
+  return function(expr) {
+    if (expr) expr = lax.expr(expr);
+    var agg = alias(function(d) {
+      return reduce(expr ? d.map(expr) : d);
+    }, reduce.name + "(" + lax.alias.get(expr) + ")");
+    agg.aggregate = true;
+    return agg;
+  };
+};
+
+lax.count = alias(function count(d) {
+  return d.length;
+}, "count()");
+
+lax.min = lax.agg(function min(d) {
+  return Math.min.apply(Math, d);
+});
+
+lax.max = lax.agg(function max(d) {
+  return Math.max.apply(Math, d);
+});
+
+lax.sum = lax.agg(function sum(d) {
+  var sum = 0;
+  for (var i = 0, len = d.length; i < len; i++) {
+    sum += d[i];
+  }
+  return sum;
+});
 
 })(typeof module === "object"
   ? module.exports
