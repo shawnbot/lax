@@ -226,8 +226,35 @@ describe("lax.lambda", function() {
   });
 });
 
+describe("lax.enlist", function() {
+});
+
+describe("lax.delist", function() {
+});
+
+describe("lax.values", function() {
+});
+
+describe("lax.coerece", function() {
+});
+
 describe("lax.not", function() {
 });
 
 describe("lax.cmp", function() {
+});
+
+describe("lax.is", function() {
+});
+
+describe("lax.select", function() {
+});
+
+describe("lax.nest", function() {
+});
+
+describe("lax.groupBy", function() {
+});
+
+describe("lax.agg, et al", function() {
 });
