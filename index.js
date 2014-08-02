@@ -673,7 +673,7 @@ lax.groupBy = function(columns) {
   var groups = flatten(arguments).map(lax.expr);
   return function group(rows) {
     var lookup = {},
-        keys = [];
+        entries = [];
     for (var i = 0, len = rows.length; i < len; i++) {
       var row = rows[i],
           values = groups.map(function(g) {
@@ -683,14 +683,14 @@ lax.groupBy = function(columns) {
       if (lookup.hasOwnProperty(key)) {
         lookup[key].rows.push(row);
       } else {
-        keys.push(lookup[key] = {
+        entries.push(lookup[key] = {
           values: values,
           key: key,
           rows: [row]
         });
       }
     }
-    return keys.map(function(d) {
+    return entries.map(function(d) {
       var g = {__rows__: d.rows};
       groups.forEach(function(group, i) {
         var key = lax.alias.get(group);
