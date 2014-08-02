@@ -52,6 +52,13 @@ lax.functor = function(d) {
     : function() { return d; };
 };
 
+// literal value
+lax.literal = function(d) {
+  return function literal() {
+    return d;
+  };
+};
+
 var flatten = lax.flatten = function() {
   var flat = [];
   forEach(arguments, function(arg, i) {
@@ -277,6 +284,31 @@ lax.multisort = function() {
       if (order < 0 || order > 0) break;
     }
     return order;
+  };
+};
+
+
+/*
+ * A simple if/else evaluator:
+ *
+ * lax.iff("foo > 1", "bar", "baz")({foo: 2, bar: 'a', baz: 'b'}) -> 'b'
+ * lax.iff("foo > 1", lax.literal(10), lax.literal(-10))({ ... }) -> 10/-10
+ */
+lax.iff = function(expr, yes, no) {
+  expr = lax.expr(expr);
+  yes = lax.expr(yes);
+  no = lax.expr(no);
+  return function iff(d) {
+    return expr(d) ? yes(d) : no(d);
+  };
+};
+
+// create a function that returns the index of a value in an Array
+// (provided either as separate arugments or a single Array)
+lax.indexIn = function(values) {
+  values = flatten(arguments);
+  return function indexIn(d) {
+    return values.indexOf(d);
   };
 };
 
