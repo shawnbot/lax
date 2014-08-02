@@ -720,9 +720,9 @@ lax.agg = function(reduce) {
   };
 };
 
-lax.count = alias(function count(d) {
+lax.count = function count(d) {
   return d.length;
-}, "count()");
+};
 
 lax.min = lax.agg(function min(d) {
   return Math.min.apply(Math, d);
