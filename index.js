@@ -151,10 +151,10 @@ lax.e = lax.expr;
  * (or expression) in its arguments:
  *
  * var strLenLen = lax.compose("length", String, "length");
- * strLenLen("Hello!") -> 
+ * strLenLen("Hello!") -> 1
  */
 lax.compose = function() {
-  var fns = flatten(arguments).map(lax.expr),
+  var fns = flatten(arguments).map(lax.property),
       length = fns.length,
       i;
   return function composed(d) {
@@ -551,7 +551,7 @@ lax.coerce.object = function() {
  * ]
  */
 lax.select = function(exprs) {
-  exprs = flatten(arguments).map(lax.expr);
+  exprs = flatten(arguments).map(lax.property);
 
   var filter,
       groupBy,
@@ -675,7 +675,7 @@ lax.select = function(exprs) {
 };
 
 lax.nest = function(expr) {
-  var groups = flatten(arguments).map(lax.expr);
+  var groups = flatten(arguments).map(lax.property);
   if (!groups.length) {
     throw new Error("lax.group() expects at least one expression");
   }
@@ -704,7 +704,7 @@ lax.nest = function(expr) {
 };
 
 lax.groupBy = function(columns) {
-  var groups = flatten(arguments).map(lax.expr);
+  var groups = flatten(arguments).map(lax.property);
   return function group(rows) {
     var lookup = {},
         entries = [];
