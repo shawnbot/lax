@@ -1,0 +1,17 @@
+{
+  "name": "lax",
+  "version": "0.0.1",
+  "description": "Handy meta-programming functions for lazy programmers",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "./node_modules/mocha/bin/mocha"
+  },
+  "author": "Shawn Allen",
+  "license": "BSD",
+  "devDependencies": {
+    "mocha": "^1.20.1"
+  }
+}
