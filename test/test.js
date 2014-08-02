@@ -248,6 +248,16 @@ describe("lax.is", function() {
 });
 
 describe("lax.select", function() {
+  var input = [
+    {foo: 0, bar: 0},
+    {foo: 1, bar: 0},
+    {foo: 2, bar: 1},
+    {foo: 1, bar: 2}
+  ];
+  it("selects named columns only", function() {
+    var row = lax.select("foo").from(input)[0];
+    assert.deepEqual(Object.keys(row), ["foo"]);
+  });
 });
 
 describe("lax.nest", function() {
