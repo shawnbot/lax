@@ -714,7 +714,7 @@ lax.agg = function(reduce) {
     if (expr) expr = lax.expr(expr);
     var agg = alias(function(d) {
       return reduce(expr ? d.map(expr) : d);
-    }, reduce.name + "(" + lax.alias.get(expr) + ")");
+    }, reduce.name + "(" + (expr ? lax.alias.get(expr) : "") + ")");
     agg.aggregate = true;
     return agg;
   };
