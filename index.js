@@ -119,14 +119,15 @@ lax.expr = function(expr) {
   return alias(function(d) {
     if (!d) d = memo;
     try {
-      with (sanitize(d)) return eval(expr, d);
+      with (d) return eval(expr, d);
     } catch (error) {
-      console.warn("expression threw error:", expr, "with", d, ":", error);
+      console.warn("lax.expr() threw an error in eval('", expr, "') with (", d, "):", error);
       return undefined;
     }
   }, expr);
 };
 
+/*
 function sanitize(d) {
   var o = {};
   for (var k in d) {
@@ -139,6 +140,7 @@ function sanitize(d) {
   }
   return o;
 }
+*/
 
 // shorthands
 lax.p = lax.property;
