@@ -725,11 +725,19 @@ lax.count = function count(d) {
 };
 
 lax.min = lax.agg(function min(d) {
-  return Math.min.apply(Math, d);
+  var min = d[0], v;
+  for (var i = 1, len = d.length; i < len; i++) {
+    if (v = d[i], v < min) min = v;
+  }
+  return min;
 });
 
 lax.max = lax.agg(function max(d) {
-  return Math.max.apply(Math, d);
+  var max = d[0], v;
+  for (var i = 1, len = d.length; i < len; i++) {
+    if (v = d[i], v > max) max = v;
+  }
+  return max;
 });
 
 lax.sum = lax.agg(function sum(d) {
