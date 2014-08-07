@@ -50,17 +50,21 @@ var byBarLength = lax.sort(lax.expr("bar.length"), "desc");
 // sorts with {bar: "ohai"} first
 ```
 
+`lax.multisort()` allows you to create sort comparators that sort on 2 or more expressions:
+
+```js
+var sortByFooBar = lax.multisort("foo asc", "bar desc"),
+    objects = [{foo: 2, bar: 0}, {foo: 1, bar: 0}, {foo: 2, bar: 1}];
+objects.sort(sortByFooBar);
+assert.deepEqual(objects[0], {foo: 1, bar: 0});
+assert.deepEqual(objects[2], {foo: 2, bar: 1});
+```
+
 ### Boolean and Functional Compositions
 Lax does boolean and functional compositions, too:
 
 ```js
-var pipeline = lax.compose(
-  lax.coerce.key("foo", "number"),
-  lax.iff("!isNaN(foo)", 
-  doSomethingWithEachRow
-);
-
-var 
+TODO
 ```
 
 ### SQL-like Data Selections
