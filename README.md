@@ -67,6 +67,17 @@ Lax does boolean and functional compositions, too:
 TODO
 ```
 
+### Shorthand Functions and Lambda Expressions
+Lax has functions for creating JavaScript functions from strings in the form of
+shorthand and Python-style lambdas:
+
+```js
+// f(x) = x, in shorthand form:
+lax.fn("f(x) x * x")
+// and in Python lambda form:
+lax.lambda("lambda x: x * x")
+```
+
 ### SQL-like Data Selections
 Lax also provides a SQL-like data selection interface for tabular data (in the form of Arrays of Objects):
 
