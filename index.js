@@ -1,5 +1,4 @@
 (function (lax) {
-
   "use strict";
   /* jshint -W014 */
 
@@ -20,7 +19,7 @@
         };
       };
 
-  lax.version = "0.0.1";
+  lax.version = require("./package.json").version;
 
   // lax.eval() should work like `eval()` (but safe)
   lax.eval = evaluate; // jshint ignore:line
