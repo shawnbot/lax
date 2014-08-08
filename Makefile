@@ -1,4 +1,4 @@
 jshint = jshint
 
 lint:
-	$(jshint) --config .jshintrc index.js
+	$(jshint) --verbose --config .jshintrc index.js
