@@ -89,7 +89,9 @@ var extend = lax.extend = function(obj, props) {
 
 // determine whether something is an Array or Arguments list
 lax.isList = function isList(list) {
-  return Array.isArray(list) || String(list) === "[object Arguments]";
+  return Array.isArray(list)
+      || (lax.is.object(list) && lax.is.number(list.length));
+  // TODO: alias these as local variables for faster lookup
 };
 
 /*
@@ -238,6 +240,9 @@ lax.desc.numeric = function(a, b) {
  */
 lax.sort = function(expr, order) {
   if (typeof expr === "string") {
+    // if the expression ends in "asc" or "desc" preceded by a space
+    // (which would be an invalid JavaScript expression anyway), use
+    // that as the sort order
     var match = expr.match(/ (asc|desc)/i);
     if (match) {
       if (typeof order === "function" || typeof order === "string") {
@@ -257,7 +262,7 @@ lax.sort = function(expr, order) {
         order = lax.desc;
         break;
       default:
-        throw "Unrecognized sort order: " + order;
+        throw new Error("lax.sort(): unrecognized sort order: '" + order + "'");
     }
   } else if (typeof order === "number") {
     order = lax.asc;
@@ -371,21 +376,60 @@ lax.is = function(type) {
   );
 };
 
+var defined = function defined(x) {
+  return x !== null && (typeof x !== "undefined");
+};
+
+lax.is.defined = defined;
+
 // shorthand type checkers
-lax.is.bool = lax.cmp.type("boolean");
-lax.is.number = lax.cmp.type("number");
-lax.is.object = lax.cmp.type("object");
-lax.is.string = lax.cmp.type("string");
-lax.is.date = lax.cmp.instance(Date);
-lax.is.defined = function defined(x) { return typeof x !== "undefined"; };
-lax.is.undef = alias(lax.cmp.type("undefined"), "undef");
-lax.is.nil = function nil(x) { return x === null; };
+lax.is.bool = function bool(b) {
+  return b === true || b === false || (b instanceof Boolean);
+};
+
+lax.is.number = function number(n) {
+  return !isNaN(n) && ((typeof n === "number") || n instanceof Number);
+};
+
+lax.is.object = function object(o) {
+  return (typeof o === "object") && defined(o);
+};
+
+lax.is.string = function string(s) {
+  return (typeof s === "string") || (s instanceof String);
+};
 
 lax.is.array = alias(Array.isArray, "array");
+lax.is.date = lax.cmp.instance(Date);
+
+lax.is.undef = function undef(x) {
+  return x === null || typeof x === "undefined";
+};
+
+lax.is.empty = function empty(d) {
+  // anything that evaluates to false in boolean context is "empty"
+  if (!d) return true;
+  // if a list-like object has zero length, return true
+  else if (typeof d.length === "number") return d.length === 0;
+  // otherwise, if the object has any keys, return false
+  for (var key in d) return false;
+  // empty!
+  return true;
+};
+
+lax.is.nil = function nil(x) { return x === null; };
+
 lax.is.integer = function integer(n) { return n % 1 === 0; };
 lax.is.floating = function floating(n) { return n % 1 > 0; };
 
-lax.is.list = function list(d) { return lax.isList(d); };
+lax.is.not = function(what) {
+  if (!lax.is.hasOwnProperty(what)) {
+    throw new Error("lax.is.not() got a bad is method name: '" + what + "'");
+  }
+  return lax.not(lax.is[what]);
+};
+
+lax.is.list = lax.isList;
 
 /*
  * A regular expression matcher:
@@ -403,6 +447,9 @@ lax.cmp.re = function(pattern) {
     return (typeof d === "string") && d.match(pattern);
   }, "re:" + pattern);
 };
+
+// alias to lax.like()
+lax.like = lax.cmp.re;
 
 /*
  * Determine if a value is in any of the (flattened) arguments:
