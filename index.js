@@ -26,7 +26,7 @@
   // and lax.function() should work like `new Function()` (but safe)
   lax.function = createFunction;
 
-  lax.entries = function entries(obj, filter) {
+  lax.entries = function(obj, filter) {
     var entries = [],
         keys = lax.keys(obj),
         i,
@@ -39,13 +39,13 @@
     return entries;
   };
 
-  lax.list = function list(list) {
+  lax.list = function(list) {
     if (!list) return [];
     else if (typeof list === "object") return lax.values(list);
     return [list];
   };
 
-  lax.keys = function keys(obj) {
+  lax.keys = function(obj) {
     if (Array.isArray(obj)) {
       var keys = [],
           i,
@@ -150,10 +150,9 @@
    * the first one with keys coped from every other one.
    */
   var extend = lax.extend = function(obj, props) {
-    var key;
     slice(arguments, 1).forEach(function(other) {
       if (!other) return;
-      for (key in other) obj[key] = other[key];
+      for (var key in other) obj[key] = other[key];
     });
     return obj;
   };
