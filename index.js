@@ -26,19 +26,66 @@
   // and lax.function() should work like `new Function()` (but safe)
   lax.function = createFunction;
 
-  // borrow some methods from Array.prototype
-  (function(ap) {
+  lax.entries = function entries(obj, filter) {
+    var entries = [],
+        keys = lax.keys(obj),
+        i,
+        len = keys.length,
+        key;
+    for (i = 0; i < len; i++) {
+      key = keys[i];
+      entries.push({key: key, value: obj[key]});
+    }
+    return entries;
+  };
 
+  lax.list = function list(list) {
+    if (!list) return [];
+    else if (typeof list === "object") return lax.values(list);
+    return [list];
+  };
+
+  lax.keys = function keys(obj) {
+    if (Array.isArray(obj)) {
+      var keys = [],
+          i,
+          len = obj.length;
+      for (i = 0; i < len; i++) {
+        keys.push(i);
+      }
+      return keys;
+    }
+    return Object.keys(obj);
+  };
+
+  lax.keys.length = function keyLength(obj) {
+    var len = 0,
+        k;
+    for (k in obj) len++;
+    return len;
+  };
+
+  lax.values = function values(obj) {
+    if (Array.isArray(obj)) return obj;
+    return lax.keys(obj)
+      .map(function(key) { return obj[key]; });
+  };
+
+  // borrow some methods from Array.prototype
+  (function(arrayPrototype) {
+
+    var _list = lax.list,
+        _slice = arrayPrototype.slice;
     lax.slice = function(list) {
-      return ap.slice.apply(list, ap.slice.call(arguments, 1));
+      return _slice.apply(_list(list), _slice.call(arguments, 1));
     };
 
     lax.forEach = function(list, fn) {
-      return ap.forEach.apply(list, ap.slice.call(arguments, 1));
+      return arrayPrototype.forEach.apply(_list(list), _slice.call(arguments, 1));
     };
 
     lax.map = function(list, fn) {
-      return ap.map.apply(list, ap.slice.call(arguments, 1));
+      return arrayPrototype.map.apply(_list(list), _slice.call(arguments, 1));
     };
 
   })(Array.prototype);
@@ -103,9 +150,10 @@
    * the first one with keys coped from every other one.
    */
   var extend = lax.extend = function(obj, props) {
+    var key;
     slice(arguments, 1).forEach(function(other) {
       if (!other) return;
-      for (var key in other) obj[key] = other[key];
+      for (key in other) obj[key] = other[key];
     });
     return obj;
   };
@@ -138,29 +186,24 @@
    * The eval() context should also include the lax namespace, so you can use
    * lax functions in side your expressions.
    */
-  lax.expr = function(expr) {
+  lax.expr = function(expr, sanitary) {
     if (typeof expr === "function") return expr;
-    var globals = {lax: lax};
     return alias(function(d) {
-      if (!d) d = globals;
-      return evaluate(expr, d);
+      return evaluate(expr, sanitary === true ? lax.sanitize(d) : d);
     }, expr);
   };
 
-  /*
-  function sanitize(d) {
-    var o = {};
-    for (var k in d) {
-      var s = k.replace(/\W/g, "_")
-        .replace(/_+$/, "")
-      if (s.match(/^\W/)) {
-        s = "_" + s;
-      }
+  lax.sanitize = function sanitize(d) {
+    var o = {},
+        k,
+        s;
+    for (k in d) {
+      s = k.replace(/\W/g, "_");
+      if (s.match(/^[^a-zA-Z]/)) s = "_" + s;
       o[s] = d[k];
     }
     return o;
-  }
-  */
+  };
 
   // shorthands
   lax.p = lax.property;
@@ -430,7 +473,8 @@
     // if a list-like object has zero length, return true
     else if (typeof d.length === "number") return d.length === 0;
     // otherwise, if the object has any keys, return false
-    for (var key in d) return false;
+    var key;
+    for (key in d) return false;
     // empty!
     return true;
   };
@@ -701,9 +745,13 @@
       if (splat || !columns.length) return row;
       var d = {};
       if (splat) extend(d, row);
-      for (var i = 0, len = columns.length; i < len; i++) {
-        var col = columns[i],
-            key = lax.alias.get(col);
+      var i,
+          len = columns.length,
+          col,
+          key;
+      for (i = 0; i < len; i++) {
+        col = columns[i];
+        key = lax.alias.get(col);
         d[key] = col(row);
       }
       return d;
@@ -748,8 +796,11 @@
     function group(rows, g) {
       var out = {},
           expr = groups[g],
-          row, key;
-      for (var i = 0, len = rows.length; i < len; i++) {
+          row,
+          key,
+          i,
+          len = rows.length;
+      for (i = 0; i < len; i++) {
         row = rows[i];
         key = expr(row);
         if (out.hasOwnProperty(key)) {
@@ -778,8 +829,10 @@
           row,
           values,
           key,
-          map = function(g) { return g(row); };
-      for (var i = 0, len = rows.length; i < len; i++) {
+          map = function(g) { return g(row); },
+          i,
+          len = rows.length;
+      for (i = 0; i < len; i++) {
         row = rows[i];
         values = groups.map(map);
         key = values.join("/");
@@ -802,14 +855,6 @@
         return g;
       });
     };
-  };
-
-  lax.values = function(obj) {
-    var values = [];
-    for (var key in obj) {
-      if (obj.hasOwnProperty(key)) values.push(obj[key]);
-    }
-    return values;
   };
 
   lax.agg = function(reduce) {
