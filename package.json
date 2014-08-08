@@ -13,5 +13,9 @@
   "license": "BSD",
   "devDependencies": {
     "mocha": "^1.20.1"
+  },
+  "dependencies": {
+    "esprima": "^1.2.2",
+    "static-eval": "^0.2.3"
   }
 }
