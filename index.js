@@ -2,6 +2,8 @@
   "use strict";
   /* jshint -W014 */
 
+  lax.version = "0.0.1";
+
   var parse = require("esprima").parse,
       staticEval = require("static-eval"),
       evaluate = function evaluate(src, locals) {
@@ -18,8 +20,6 @@
           return evaluate(body, locals);
         };
       };
-
-  lax.version = require("./package.json").version;
 
   // lax.eval() should work like `eval()` (but safe)
   lax.eval = evaluate; // jshint ignore:line
