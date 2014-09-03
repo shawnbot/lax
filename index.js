@@ -26,7 +26,7 @@
   // and lax.function() should work like `new Function()` (but safe)
   lax.function = createFunction;
 
-  lax.entries = function(obj, filter) {
+  lax.entries = function lax_entries(obj, filter) {
     var entries = [],
         keys = lax.keys(obj),
         i,
@@ -39,7 +39,7 @@
     return entries;
   };
 
-  lax.list = function(list) {
+  lax.list = function lax_list(list) {
     if (!list) return [];
     else if (typeof list === "object") return lax.values(list);
     return [list];
@@ -58,14 +58,14 @@
     return Object.keys(obj);
   };
 
-  lax.keys.length = function keyLength(obj) {
+  lax.keyLength = function lax_keyLength(obj) {
     var len = 0,
         k;
     for (k in obj) len++;
     return len;
   };
 
-  lax.values = function values(obj) {
+  lax.values = function lax_values(obj) {
     if (Array.isArray(obj)) return obj;
     return lax.keys(obj)
       .map(function(key) { return obj[key]; });
@@ -76,15 +76,15 @@
 
     var _list = lax.list,
         _slice = arrayPrototype.slice;
-    lax.slice = function(list) {
+    lax.slice = function lax_slice(list) {
       return _slice.apply(_list(list), _slice.call(arguments, 1));
     };
 
-    lax.forEach = function(list, fn) {
+    lax.forEach = function lax_forEach(list, fn) {
       return arrayPrototype.forEach.apply(_list(list), _slice.call(arguments, 1));
     };
 
-    lax.map = function(list, fn) {
+    lax.map = function lax_map(list, fn) {
       return arrayPrototype.map.apply(_list(list), _slice.call(arguments, 1));
     };
 
@@ -95,9 +95,9 @@
       forEach = lax.forEach;
 
   // identity function
-  lax.ident = lax.identity = function identity(d) { return d; };
+  lax.ident = lax.identity = function lax_identity(d) { return d; };
 
-  var alias = lax.alias = function(fn, name) {
+  var alias = lax.alias = function lax_alias(fn, name) {
     fn.as = function(alias) {
       fn.alias = alias;
       return fn;
@@ -108,28 +108,28 @@
     return fn.as(name);
   };
 
-  lax.alias.get = function(fn) {
+  lax.alias.get = function lax_alias_get(fn) {
     return fn.alias || fn.name;
   };
 
   // noop function (returns undefined)
-  lax.noop = function noop() {};
+  lax.noop = function lax_noop() {};
 
   // functor
-  lax.functor = function(d) {
+  lax.functor = function lax_functor(d) {
     return (typeof d === "function")
       ? d
       : function() { return d; };
   };
 
   // literal value
-  lax.literal = function(d) {
+  lax.literal = function lax_literal(d) {
     return function literal() {
       return d;
     };
   };
 
-  var flatten = lax.flatten = function() {
+  var flatten = lax.flatten = function lax_flatten() {
     var flat = [];
     forEach(arguments, function(arg, i) {
       if (lax.isList(arg)) {
@@ -149,7 +149,7 @@
    * lax.extend() takes 1 or more objects, and returns
    * the first one with keys coped from every other one.
    */
-  var extend = lax.extend = function(obj, props) {
+  var extend = lax.extend = function lax_extend(obj, props) {
     slice(arguments, 1).forEach(function(other) {
       if (!other) return;
       for (var key in other) obj[key] = other[key];
@@ -158,7 +158,7 @@
   };
 
   // determine whether something is an Array or Arguments list
-  lax.isList = function isList(list) {
+  lax.isList = function lax_isList(list) {
     return Array.isArray(list)
         || (lax.is.object(list) && lax.is.number(list.length));
     // TODO: alias these as local variables for faster lookup
@@ -169,7 +169,7 @@
    *
    * lax.property('foo')({foo: 'bar'}) -> 'bar'
    */
-  lax.property = function(prop) {
+  lax.property = function lax_property(prop) {
     if (typeof prop === "function") return prop;
     return alias(function(d) {
       return d[prop];
@@ -185,14 +185,14 @@
    * The eval() context should also include the lax namespace, so you can use
    * lax functions in side your expressions.
    */
-  lax.expr = function(expr, sanitary) {
+  lax.expr = function lax_expr(expr, sanitary) {
     if (typeof expr === "function") return expr;
     return alias(function(d) {
       return evaluate(expr, sanitary === true ? lax.sanitize(d) : d);
     }, expr);
   };
 
-  lax.sanitize = function sanitize(d) {
+  lax.sanitize = function lax_sanitize(d) {
     var o = {},
         k,
         s;
@@ -215,7 +215,7 @@
    * var strLenLen = lax.compose("length", String, "length");
    * strLenLen("Hello!") -> 1
    */
-  lax.compose = function() {
+  lax.compose = function lax_compose() {
     var fns = flatten(arguments).map(lax.property),
         length = fns.length,
         i;
@@ -230,7 +230,7 @@
   /*
    * create a wrapped function that returns the boolean ! of the other function
    */
-  lax.not = function(f) {
+  lax.not = function lax_not(f) {
     f = lax.expr(f);
     return alias(function not() {
       return !f.apply(this, arguments);
@@ -241,7 +241,7 @@
    * create a function that returns true if any of the provided functions
    * (or expressions) returns true for the given arguments.
    */
-  lax.or = function() {
+  lax.or = function lax_or() {
     var tests = flatten(arguments).map(lax.expr),
         length = tests.length,
         i;
@@ -257,7 +257,7 @@
    * create a function that returns true iff all of the provided functions (or
    * expressions) returns true for the given arguments.
    */
-  lax.and = function and() {
+  lax.and = function lax_and() {
     var tests = flatten(arguments).map(lax.expr),
         length = tests.length,
         i;
@@ -270,22 +270,22 @@
   };
 
   // ascending comparator
-  lax.asc = function(a, b) {
+  lax.asc = function lax_asc(a, b) {
     return a > b ? 1 : a < b ? -1 : 0;
   };
 
   // descending comparator
-  lax.desc = function(a, b) {
+  lax.desc = function lax_desc(a, b) {
     return a > b ? -1 : a < b ? 1 : 0;
   };
 
   // numeric ascending
-  lax.asc.numeric = function(a, b) {
+  lax.asc.numeric = function lax_asc_numeric(a, b) {
     return a - b;
   };
 
   // numeric descending
-  lax.desc.numeric = function(a, b) {
+  lax.desc.numeric = function lax_desc_numeric(a, b) {
     return b - a;
   };
 
@@ -298,7 +298,7 @@
    * lax.sort("foo", lax.asc) // use the asc order
    * lax.sort("foo", function(a, b) { return a - b; }) // or a custom order
    */
-  lax.sort = function(expr, order) {
+  lax.sort = function lax_sort(expr, order) {
     if (typeof expr === "string") {
       // if the expression ends in "asc" or "desc" preceded by a space
       // (which would be an invalid JavaScript expression anyway), use
@@ -341,7 +341,7 @@
    *
    * lax.multisort("foo asc", "bar desc");
    */
-  lax.multisort = function() {
+  lax.multisort = function lax_multisort() {
     var sorts = flatten(arguments).map(lax.sort),
         length = sorts.length,
         i;
@@ -362,7 +362,7 @@
    * lax.iff("foo > 1", "bar", "baz")({foo: 2, bar: 'a', baz: 'b'}) -> 'b'
    * lax.iff("foo > 1", lax.literal(10), lax.literal(-10))({ ... }) -> 10/-10
    */
-  lax.iff = function(expr, yes, no) {
+  lax.iff = function lax_iff(expr, yes, no) {
     expr = lax.expr(expr);
     yes = lax.expr(yes);
     no = lax.expr(no);
@@ -373,7 +373,7 @@
 
   // create a function that returns the index of a value in an Array
   // (provided either as separate arugments or a single Array)
-  lax.indexIn = function(values) {
+  lax.indexIn = function lax_indexIn(values) {
     values = flatten(arguments);
     return function indexIn(d) {
       return values.indexOf(d);
@@ -387,7 +387,7 @@
    * lax.cmp("==")(5)(5) // true
    * lax.cmp(">=")(5)(4) // false
    */
-  lax.cmp = function(op) {
+  lax.cmp = function lax_cmp(op) {
     return function cmp(value) {
       return alias(
         createFunction("d", ["d", op, value].join(" ")),
@@ -410,14 +410,14 @@
   lax.cmp.minus = lax.cmp.sub = lax.cmp("-");
 
   // is ~ instanceof
-  lax.cmp.instance = function(klass) {
+  lax.cmp.instance = function lax_cmp_instance(klass) {
     return function instance(d) {
       return d instanceof klass;
     };
   };
 
   // type ~ typeof
-  lax.cmp.type = function(type) {
+  lax.cmp.type = function lax_cmp_type(type) {
     return alias(function(d) {
       return typeof d === type;
     }, "type:" + type);
@@ -428,7 +428,7 @@
    * lax.is(class) -> lax.cmp.instance(class)
    * lax.is(alias) -> alias
    */
-  lax.is = function(type) {
+  lax.is = function lax_is(type) {
     return lax.is[type] || (
       typeof type === "string"
         ? lax.cmp.type(type)
@@ -436,37 +436,37 @@
     );
   };
 
-  var defined = function defined(x) {
+  var defined = function lax_defined(x) {
     return x !== null && (typeof x !== "undefined");
   };
 
   lax.is.defined = defined;
 
   // shorthand type checkers
-  lax.is.bool = function bool(b) {
+  lax.is.bool = function lax_is_bool(b) {
     return b === true || b === false || (b instanceof Boolean);
   };
 
-  lax.is.number = function number(n) {
+  lax.is.number = function lax_is_number(n) {
     return !isNaN(n) && ((typeof n === "number") || n instanceof Number);
   };
 
-  lax.is.object = function object(o) {
+  lax.is.object = function lax_is_object(o) {
     return (typeof o === "object") && defined(o);
   };
 
-  lax.is.string = function string(s) {
+  lax.is.string = function lax_is_string(s) {
     return (typeof s === "string") || (s instanceof String);
   };
 
   lax.is.array = alias(Array.isArray, "array");
   lax.is.date = lax.cmp.instance(Date);
 
-  lax.is.undef = function undef(x) {
+  lax.is.undef = function lax_is_undef(x) {
     return x === null || typeof x === "undefined";
   };
 
-  lax.is.empty = function empty(d) {
+  lax.is.empty = function lax_is_empty(d) {
     // anything that evaluates to false in boolean context is "empty"
     if (!d) return true;
     // if a list-like object has zero length, return true
@@ -478,12 +478,14 @@
     return true;
   };
 
-  lax.is.nil = function nil(x) { return x === null; };
+  lax.is.nil = function lax_is_nil(x) {
+    return x === null;
+  };
 
-  lax.is.integer = function integer(n) { return n % 1 === 0; };
-  lax.is.floating = function floating(n) { return n % 1 > 0; };
+  lax.is.integer = function lax_is_integer(n) { return n % 1 === 0; };
+  lax.is.floating = function lax_is_floating(n) { return n % 1 > 0; };
 
-  lax.is.not = function(what) {
+  lax.is.not = function lax_is_not(what) {
     if (!lax.is.hasOwnProperty(what)) {
       throw new Error("lax.is.not() got a bad is method name: '" + what + "'");
     }
@@ -499,7 +501,7 @@
    * lax.cmp.re(/^foo?$/i)
    * lax.cmp.re("/^foo?$/i")
    */
-  lax.cmp.re = function(pattern) {
+  lax.cmp.re = function lax_cmp_re(pattern) {
     if (typeof pattern === "string") {
       var match = pattern.match(/^\/(.*)\/([a-z]+)?$/);
       if (match) pattern = new RegExp(match[1], match[2]);
@@ -520,7 +522,7 @@
    * lax.cmp.in([2, 4])(2) // true
    * lax.cmp.in([2, [4]])(4) // true
    */
-  lax.cmp.in = function(values) {
+  lax.cmp.in = function lax_cmp_in(values) {
     values = lax.flatten(arguments);
     return function isin(d) {
       return values.indexOf(d) > -1;
@@ -530,10 +532,11 @@
   /*
    * A shorthand function parser, hold the curly braces and return keyword:
    *
+   * lax.fn("d + 1") -> function(d) { return d + 1; }
    * lax.fn("f(x) x + 1") -> function(x) { return x + 1; }
    * lax.fn("fn(d, i) i") -> function(d, i) { return i; }
    */
-  lax.fn = function(expr) {
+  lax.fn = function lax_fn(expr) {
     var match = expr.match(lax.fn.pattern);
     if (match) {
       return createFunction(match[1] || "d", match[2]);
@@ -550,7 +553,7 @@
    * lax.lambda("lambda x: x + 1") -> function(x) { return x + 1; }
    * lax.lambda("lambda d, i: i") -> function(d, i) { return i; }
    */
-  lax.lambda = function(expr) {
+  lax.lambda = function lax_lambda(expr) {
     var match = expr.match(lax.lambda.pattern);
     if (match) {
       return createFunction(match[1] || "d", match[2]);
