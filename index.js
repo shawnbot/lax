@@ -558,22 +558,23 @@
     return null;
   };
 
-  lax.lambda.pattern = /^lambda?\s+([^\:]+):\s*(.+)$/;
+  lax.lambda.pattern = /^lambda\s+([^\:]+):\s*(.+)$/;
 
   // lax.delist([1, 2], ["a", "b"]) -> {a: 1, b: 2}
-  lax.delist = function(list, keys) {
+  lax.delist = function lax_delist(list, keys) {
     var out = {};
-    keys.forEach(function(k, i) {
-      out[k] = list[i];
-    });
+    for (var i = 0, len = keys.length; i < len; i++) {
+      out[keys[i]] = list[i];
+    }
     return out;
   };
 
   // lax.enlist({a: 1, b: 2}, ["a", "b"]) -> [1, 2]
-  lax.enlist = function(obj, keys) {
-    return keys.map(function(k) {
-      return obj[k];
-    });
+  lax.enlist = function lax_enlist(obj, keys) {
+    var list = [];
+    for (var i = 0, len = keys.length; i < len; i++) {
+      list.push(obj[keys[i]]);
+    }
   };
 
 
