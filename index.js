@@ -45,17 +45,14 @@
     return [list];
   };
 
-  lax.keys = function(obj) {
-    if (Array.isArray(obj)) {
-      var keys = [],
-          i,
-          len = obj.length;
-      for (i = 0; i < len; i++) {
-        keys.push(i);
+  lax.keys = function lax_keys(obj) {
+    var keys = [];
+    for (var key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        keys.push(key);
       }
-      return keys;
     }
-    return Object.keys(obj);
+    return keys;
   };
 
   lax.keyLength = function lax_keyLength(obj) {
