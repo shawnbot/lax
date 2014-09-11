@@ -20,10 +20,17 @@ describe("lax.fn", function() {
   it("handles 'f(x) x' expressions", function() {
     var f = lax.fn("f(x) x + 1");
     assert.notEqual(f, null, "parse error");
-    assert.equal(f(0), 1);
+    assert.equal(f(2), 3);
+
     var f = lax.fn("f(x, i) i + 1");
     assert.notEqual(f, null, "parse error");
-    assert.equal(f(null, 0), 1);
+    assert.equal(f(null, 2), 3);
+  });
+
+  it("handles 'fn(x) x' expressions", function() {
+    var f = lax.fn("fn(x) x + 1");
+    assert.notEqual(f, null, "parse error");
+    assert.equal(f(2), 3);
   });
 });
 
