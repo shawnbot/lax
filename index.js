@@ -39,6 +39,7 @@
     return entries;
   };
 
+  // just give me a friggin' list (Array)
   lax.list = function lax_list(list) {
     if (!list) return [];
     else if (typeof list === "object") return lax.values(list);
@@ -46,8 +47,9 @@
   };
 
   lax.keys = function lax_keys(obj) {
-    var keys = [];
-    for (var key in obj) {
+    var keys = [],
+        key;
+    for (key in obj) {
       if (obj.hasOwnProperty(key)) {
         keys.push(key);
       }
@@ -55,17 +57,23 @@
     return keys;
   };
 
+  lax.values = function lax_values(obj) {
+    if (Array.isArray(obj)) return obj;
+    var vals = [],
+        key;
+    for (key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        vals.push(obj[key]);
+      }
+    }
+    return vals;
+  };
+
   lax.keyLength = function lax_keyLength(obj) {
     var len = 0,
         k;
     for (k in obj) len++;
     return len;
-  };
-
-  lax.values = function lax_values(obj) {
-    if (Array.isArray(obj)) return obj;
-    return lax.keys(obj)
-      .map(function(key) { return obj[key]; });
   };
 
   // borrow some methods from Array.prototype
@@ -421,6 +429,41 @@
   };
 
   /*
+   * A regular expression matcher:
+   *
+   * lax.cmp.re("^foo?$")
+   * lax.cmp.re(/^foo?$/i)
+   * lax.cmp.re("/^foo?$/i")
+   */
+  lax.cmp.re = function lax_cmp_re(pattern) {
+    if (typeof pattern === "string") {
+      var match = pattern.match(/^\/(.*)\/([a-z]+)?$/);
+      if (match) pattern = new RegExp(match[1], match[2]);
+    }
+    return alias(function(d) {
+      return (typeof d === "string") && d.match(pattern);
+    }, "re:" + pattern);
+  };
+
+  // alias to lax.like()
+  lax.like = lax.cmp.re;
+
+  /*
+   * Determine if a value is in any of the (flattened) arguments:
+   *
+   * lax.cmp.in(1, 2)(0) // false
+   * lax.cmp.in(1, 2)(1) // true
+   * lax.cmp.in([2, 4])(2) // true
+   * lax.cmp.in([2, [4]])(4) // true
+   */
+  lax.cmp.in = function lax_cmp_in(values) {
+    values = lax.flatten(arguments);
+    return function isin(d) {
+      return values.indexOf(d) > -1;
+    };
+  };
+
+  /*
    * lax.is(type) -> lax.cmp.type(type)
    * lax.is(class) -> lax.cmp.instance(class)
    * lax.is(alias) -> alias
@@ -456,21 +499,33 @@
     return (typeof s === "string") || (s instanceof String);
   };
 
+  // XXX does this cover Array subclasses?
   lax.is.array = alias(Array.isArray, "array");
+
+  // XXX this is pretty lax, but should do the trick
+  lax.is.args = function lax_is_args(a) {
+    return typeof a === "object" && typeof a.length === "number";
+  };
+
   lax.is.date = lax.cmp.instance(Date);
 
   lax.is.undef = function lax_is_undef(x) {
     return x === null || typeof x === "undefined";
   };
 
+  // XXX should 0 really be considered empty?
   lax.is.empty = function lax_is_empty(d) {
     // anything that evaluates to false in boolean context is "empty"
-    if (!d) return true;
+    if (!d) {
+      return true;
     // if a list-like object has zero length, return true
-    else if (typeof d.length === "number") return d.length === 0;
+    } else if (typeof d.length === "number") {
+      return d.length === 0;
     // otherwise, if the object has any keys, return false
-    var key;
-    for (key in d) return false;
+    } else if (typeof d === "object") {
+      var key;
+      for (key in d) return false;
+    }
     // empty!
     return true;
   };
@@ -479,51 +534,21 @@
     return x === null;
   };
 
-  lax.is.integer = function lax_is_integer(n) { return n % 1 === 0; };
-  lax.is.floating = function lax_is_floating(n) { return n % 1 > 0; };
+  lax.is.integer = function lax_is_integer(n) {
+    return isFinite(n) && Math.round(n) === n;
+  };
+
+  lax.is.floating = function lax_is_floating(n) {
+    return isFinite(n) && Math.round(n) !== n;
+  };
+
+  lax.is.list = lax.isList;
 
   lax.is.not = function lax_is_not(what) {
     if (!lax.is.hasOwnProperty(what)) {
       throw new Error("lax.is.not() got a bad is method name: '" + what + "'");
     }
     return lax.not(lax.is[what]);
-  };
-
-  lax.is.list = lax.isList;
-
-  /*
-   * A regular expression matcher:
-   *
-   * lax.cmp.re("^foo?$")
-   * lax.cmp.re(/^foo?$/i)
-   * lax.cmp.re("/^foo?$/i")
-   */
-  lax.cmp.re = function lax_cmp_re(pattern) {
-    if (typeof pattern === "string") {
-      var match = pattern.match(/^\/(.*)\/([a-z]+)?$/);
-      if (match) pattern = new RegExp(match[1], match[2]);
-    }
-    return alias(function(d) {
-      return (typeof d === "string") && d.match(pattern);
-    }, "re:" + pattern);
-  };
-
-  // alias to lax.like()
-  lax.like = lax.cmp.re;
-
-  /*
-   * Determine if a value is in any of the (flattened) arguments:
-   *
-   * lax.cmp.in(1, 2)(0) // false
-   * lax.cmp.in(1, 2)(1) // true
-   * lax.cmp.in([2, 4])(2) // true
-   * lax.cmp.in([2, [4]])(4) // true
-   */
-  lax.cmp.in = function lax_cmp_in(values) {
-    values = lax.flatten(arguments);
-    return function isin(d) {
-      return values.indexOf(d) > -1;
-    };
   };
 
   /*
