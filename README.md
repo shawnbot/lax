@@ -1,5 +1,5 @@
 # lax
-The data toolkit for lazy JavaScript programmers (and other people).
+A data toolkit for lazy JavaScript programmers (and other people).
 
 ### Expressions
 Lax expressions allow you to evaluate JavaScript expressions using an object as the source of the expression's local variables. Here's how you use then:
